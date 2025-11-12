@@ -27,7 +27,6 @@ public class AnalysisResult {
     private LocalDateTime processStartTime;
     private LocalDateTime processEndTime;
 
-    // Композиция - статистика в отдельной таблице
     @OneToOne(mappedBy = "analysisResult", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private AnalysisStatistics statistics;
 }

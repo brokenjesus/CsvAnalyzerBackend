@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class HistoryService {
+public class FIleAnalysisHistoryService {
 
     private final AnalysisResultRepository analysisResultRepository;
     private static final int MAX_HISTORY_RECORDS = 10;
@@ -50,10 +50,23 @@ public class HistoryService {
         return convertToDTO(result);
     }
 
+    public AnalysisResultDTO getAnalysisDetailsByFileId(UUID fileId) {
+        AnalysisResult result = analysisResultRepository.findAnalysisResultByFile_Id(fileId)
+                .orElseThrow(() -> new RuntimeException("Analysis result not found: " + fileId));
+        return convertToDTO(result);
+    }
+
     @Transactional
     public void deleteAnalysis(UUID id) {
         AnalysisResult result = analysisResultRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Analysis result not found: " + id));
+
+        analysisResultRepository.delete(result);
+    }
+
+    public void deleteAnalysisByFileId(UUID fileId) {
+        AnalysisResult result = analysisResultRepository.findAnalysisResultByFile_Id(fileId)
+                .orElseThrow(() -> new RuntimeException("Analysis result not found: " + fileId));
 
         analysisResultRepository.delete(result);
     }

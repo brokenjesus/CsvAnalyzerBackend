@@ -23,4 +23,5 @@ public interface AnalysisResultRepository extends JpaRepository<AnalysisResult, 
     @Query("SELECT ar FROM AnalysisResult ar ORDER BY ar.processStartTime ASC")
     List<AnalysisResult> findOldestResults(Pageable pageable);
 
+    Optional<AnalysisResult> findAnalysisResultByFile_Id(UUID id);
 }

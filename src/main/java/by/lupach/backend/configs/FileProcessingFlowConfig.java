@@ -2,7 +2,7 @@
 package by.lupach.backend.configs;
 
 import by.lupach.backend.dtos.FileQueueMessageDTO;
-import by.lupach.backend.services.StreamingFileProcessingService;
+import by.lupach.backend.services.fileprocessing.StreamingFileProcessingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
