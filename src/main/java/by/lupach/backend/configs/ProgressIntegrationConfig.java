@@ -18,7 +18,8 @@ import org.springframework.messaging.MessageChannel;
 @RequiredArgsConstructor
 public class ProgressIntegrationConfig {
 
-    private final RedisTemplate<String, ProgressMessageDTO> progressRedisTemplate;
+    private static final String PROGRESS_CHANNEL = "progressChannel";
+
     private final ProgressFlowConfig progressFlowConfig;
 
     @Bean
@@ -29,12 +30,9 @@ public class ProgressIntegrationConfig {
     @Bean
     public IntegrationFlow progressFlow() {
         return IntegrationFlow
-                .from(progressChannel())
-                .handle(Message.class, (payload, headers) -> {
-                    @SuppressWarnings("unchecked")
-                    Message<ProgressMessageDTO> message = (Message<ProgressMessageDTO>) payload;
-                    log.debug("Received progress message: {}", message.getPayload());
-                    progressFlowConfig.handleProgressMessage(message);
+                .from(PROGRESS_CHANNEL)
+                .handle(Message.class, (message, headers) -> {
+                    progressFlowConfig.handleProgressMessage((Message<ProgressMessageDTO>) message);
                     return null;
                 })
                 .get();

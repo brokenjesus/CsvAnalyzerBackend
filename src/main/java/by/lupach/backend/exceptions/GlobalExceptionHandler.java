@@ -17,4 +17,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleFileSizeAboveLimitException(FileSizeAboveLimitException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(ex.getMessage());
     }
+
+    @ExceptionHandler(AnalysisNotFoundException.class)
+    public ResponseEntity<String> handleAnalysisNotFoundExceptionException(AnalysisNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(ex.getMessage());
+    }
 }

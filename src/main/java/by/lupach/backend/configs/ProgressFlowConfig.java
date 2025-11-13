@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.messaging.Message;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.Optional;
@@ -19,40 +18,57 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ProgressFlowConfig {
 
-    private final AnalysisStatusFacade statusFacade;
+    private static final String PROGRESS_TOPIC_PREFIX = "/topic/progress/";
+
+    private final AnalysisStatusFacade analysisStatusFacade;
     private final FileEntityRepository fileEntityRepository;
-    private final SimpMessagingTemplate ws;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @ServiceActivator(inputChannel = "progressChannel")
     public void handleProgressMessage(Message<ProgressMessageDTO> message) {
-        ProgressMessageDTO dto = message.getPayload();
+        ProgressMessageDTO progressMessage = message.getPayload();
 
         if (Thread.interrupted()) {
-            log.warn("Progress thread was interrupted — clearing interrupt flag before Redis access");
+            log.warn("Progress thread was interrupted - clearing interrupt flag before Redis access");
         }
 
-
         try {
-            Optional<ProcessingStatus> processingStatus = statusFacade.status().get(dto.fileId());
-            if (processingStatus.isPresent() && !processingStatus.get().equals(dto.status())) {
-                fileEntityRepository.findById(dto.fileId()).ifPresent(f -> {
-                    f.setStatus(dto.status());
-                    fileEntityRepository.save(f);
-                });
-            }
-            statusFacade.status().set(dto.fileId(), dto.status());
-            statusFacade.progress().set(dto.fileId(), dto);
-            ws.convertAndSend("/topic/progress/" + dto.fileId(), dto);
-            log.info("Progress update for file {}: {}% [{}]",
-                    dto.fileId(), dto.progress(), dto.status());
-        } catch (Exception e) {
-            log.error("Error handling progress message for {}: {}", dto.fileId(), e.getMessage(), e);
+            updateDBFileStatusIfChanged(progressMessage);
+            updateProgressCache(progressMessage);
+            notifyWebSocketClients(progressMessage);
+
+            log.debug("Progress update for file {}: {}% [{}]",
+                    progressMessage.fileId(), progressMessage.progress(), progressMessage.status());
+
+        } catch (Exception exception) {
+            log.error("Error handling progress message for file {}: {}",
+                    progressMessage.fileId(), exception.getMessage(), exception);
         }
     }
 
-    // Для отладки ошибок в интеграции
+    private void updateDBFileStatusIfChanged(ProgressMessageDTO progressMessage) {
+        Optional<ProcessingStatus> currentStatus = analysisStatusFacade.status().get(progressMessage.fileId());
+
+        if (currentStatus.isEmpty() || !currentStatus.get().equals(progressMessage.status())) {
+            fileEntityRepository.findById(progressMessage.fileId()).ifPresent(fileEntity -> {
+                fileEntity.setStatus(progressMessage.status());
+                fileEntityRepository.save(fileEntity);
+            });
+        }
+    }
+
+    private void updateProgressCache(ProgressMessageDTO progressMessage) {
+        analysisStatusFacade.status().set(progressMessage.fileId(), progressMessage.status());
+        analysisStatusFacade.progress().set(progressMessage.fileId(), progressMessage);
+    }
+
+    private void notifyWebSocketClients(ProgressMessageDTO progressMessage) {
+        String destination = PROGRESS_TOPIC_PREFIX + progressMessage.fileId();
+        messagingTemplate.convertAndSend(destination, progressMessage);
+    }
+
     @ServiceActivator(inputChannel = "errorChannel")
-    public void handleError(Message<?> error) {
-        log.error("Error in progress integration flow: {}", error.getPayload());
+    public void handleError(Message<?> errorMessage) {
+        log.error("Error in progress integration flow: {}", errorMessage.getPayload());
     }
 }

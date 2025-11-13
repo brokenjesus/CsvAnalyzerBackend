@@ -6,12 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.config.EnableIntegration;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.redis.inbound.RedisQueueMessageDrivenEndpoint;
-import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 
 @Slf4j
@@ -20,8 +18,10 @@ import org.springframework.messaging.MessageChannel;
 @RequiredArgsConstructor
 public class FileIntegrationConfig {
 
+    private static final String FILE_PROCESSING_CHANNEL = "fileProcessingChannel";
+    private static final String FILE_QUEUE_ENDPOINT_BEAN_NAME = "fileQueueEndpoint";
+
     private final RedisTemplate<String, FileQueueMessageDTO> fileQueueRedisTemplate;
-    private final FileProcessingFlowConfig fileProcessingFlowConfig;
 
     @Bean
     public MessageChannel fileInputChannel() {
@@ -34,31 +34,20 @@ public class FileIntegrationConfig {
                 RedisConfig.FILE_QUEUE,
                 fileQueueRedisTemplate.getConnectionFactory()
         );
+
         endpoint.setOutputChannel(fileInputChannel());
-        endpoint.setBeanName("fileQueueEndpoint");
-
-        // Используем тот же сериализатор, что и RedisTemplate
+        endpoint.setBeanName(FILE_QUEUE_ENDPOINT_BEAN_NAME);
         endpoint.setSerializer(fileQueueRedisTemplate.getValueSerializer());
-
-        // Отключаем ожидание Message, т.к. в очереди чистый DTO
         endpoint.setExpectMessage(false);
 
         return endpoint;
     }
 
-
     @Bean
     public IntegrationFlow fileProcessingFlow() {
         return IntegrationFlow
                 .from(redisQueueEndpoint())
-                .handle(Message.class, (payload, headers) -> {
-                    // payload уже Message<FileQueueMessageDTO>
-                    @SuppressWarnings("unchecked")
-                    Message<FileQueueMessageDTO> message = (Message<FileQueueMessageDTO>) payload;
-                    log.info("Received from Redis queue: {}", message.getPayload());
-                    fileProcessingFlowConfig.handleFileMessage(message);
-                    return null;
-                })
+                .channel(FILE_PROCESSING_CHANNEL)
                 .get();
     }
 }

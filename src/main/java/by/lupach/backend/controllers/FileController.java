@@ -3,6 +3,7 @@ package by.lupach.backend.controllers;
 import by.lupach.backend.dtos.AnalysisResultDTO;
 import by.lupach.backend.dtos.FileUploadResponseDTO;
 import by.lupach.backend.dtos.PageResponseDTO;
+import by.lupach.backend.services.FileAnalysisService;
 import by.lupach.backend.services.HistoryService;
 import by.lupach.backend.services.fileprocessing.StreamingFileProcessingService;
 import by.lupach.backend.services.files.FileService;
@@ -22,6 +23,7 @@ public class FileController {
     private final FileService fileService;
     private final StreamingFileProcessingService fileProcessingService;
     private final HistoryService historyService;
+    private final FileAnalysisService fileAnalysisService;
 
     @PostMapping("/analyze")
     public ResponseEntity<FileUploadResponseDTO> analyze(@RequestParam("file") MultipartFile file) throws Exception {
@@ -45,12 +47,12 @@ public class FileController {
 
     @GetMapping("/history/{id}")
     public ResponseEntity<AnalysisResultDTO> getAnalysisDetails(@PathVariable UUID id) {
-        return ResponseEntity.ok(historyService.getAnalysisDetailsByFileId(id));
+        return ResponseEntity.ok(fileAnalysisService.getAnalysisDetailsByFileId(id));
     }
 
     @DeleteMapping("/history/{id}")
     public ResponseEntity<Void> deleteAnalysis(@PathVariable UUID id) {
-        historyService.deleteAnalysisByFileId(id);
+        fileAnalysisService.deleteAnalysisByFileId(id);
         return ResponseEntity.ok().build();
     }
 }

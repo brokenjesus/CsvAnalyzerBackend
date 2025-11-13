@@ -1,5 +1,6 @@
 package by.lupach.backend.configs;
 
+import by.lupach.backend.dtos.AnalysisResultDTO;
 import by.lupach.backend.dtos.FileQueueMessageDTO;
 import by.lupach.backend.dtos.ProgressMessageDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,7 +19,8 @@ public class RedisConfig {
     public static final String FILE_QUEUE = "file:queue";
     public static final String STATUS_PREFIX = "file:status:";
     public static final String PROGRESS_PREFIX = "file:progress:";
-    public static final String CANCELLATION_PREFIX = "file:cancel:";
+    public static final String ANALYSIS_PREFIX = "file:analysis:";
+//    public static final String CANCELLATION_PREFIX = "file:cancel:";
 
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
@@ -41,6 +43,24 @@ public class RedisConfig {
 
         return template;
     }
+
+    @Bean
+    public RedisTemplate<String, AnalysisResultDTO> fileAnalysisRedisTemplate(RedisConnectionFactory factory) {
+        RedisTemplate<String, AnalysisResultDTO> template = new RedisTemplate<>();
+        template.setConnectionFactory(factory);
+
+        Jackson2JsonRedisSerializer<AnalysisResultDTO> serializer =
+                new Jackson2JsonRedisSerializer<>(AnalysisResultDTO.class);
+
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(serializer);
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(serializer);
+        template.afterPropertiesSet();
+
+        return template;
+    }
+
 
 
     @Bean

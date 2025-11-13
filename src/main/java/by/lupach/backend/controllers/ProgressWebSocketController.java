@@ -63,17 +63,17 @@ public class ProgressWebSocketController {
         }
     }
 
-//    /**
-//     * Возвращает текущее состояние анализа по запросу (например, для кнопки «Обновить»)
-//     */
-//    @MessageMapping("/progress/status/{fileId}")
-//    public void getStatus(@DestinationVariable UUID fileId) {
-//        try {
-//            internalGetProgressMessageDTO(fileId);
-//        } catch (Exception e) {
-//            log.error("Failed to fetch status for {}: {}", fileId, e.getMessage());
-//        }
-//    }
+    /**
+     * Возвращает текущее состояние анализа по запросу (например, для кнопки «Обновить»)
+     */
+    @MessageMapping("/progress/status/{fileId}")
+    public void getStatus(@DestinationVariable UUID fileId) {
+        try {
+            internalGetProgressMessageDTO(fileId);
+        } catch (Exception e) {
+            log.error("Failed to fetch status for {}: {}", fileId, e.getMessage());
+        }
+    }
 
     private ProgressMessageDTO internalGetProgressMessageDTO(@DestinationVariable UUID fileId) {
         Optional<ProgressMessageDTO> progress = analysisStatusFacade.progress().get(fileId);
