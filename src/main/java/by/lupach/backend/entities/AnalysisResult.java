@@ -27,6 +27,7 @@ public class AnalysisResult {
     private LocalDateTime processStartTime;
     private LocalDateTime processEndTime;
 
-    @OneToOne(mappedBy = "analysisResult", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+//    @OneToOne(mappedBy = "analysisResult", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private AnalysisStatistics statistics;
 }

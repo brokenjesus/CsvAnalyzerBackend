@@ -18,12 +18,12 @@ import java.util.UUID;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:4200")
 public class ProgressWebSocketController {
 
     private final SimpMessagingTemplate ws;
     private final AnalysisStatusFacade analysisStatusFacade;
     private final StreamingFileProcessingService processingService;
+
 
     /**
      * Отправляет клиенту текущий прогресс и статус, как только он подключается
@@ -31,7 +31,8 @@ public class ProgressWebSocketController {
     @MessageMapping("/progress/subscribe/{fileId}")
     public void onSubscribe(@DestinationVariable UUID fileId) {
         try {
-            internalGetProgressMessageDTO(fileId);
+            ProgressMessageDTO dto =  internalGetProgressMessageDTO(fileId);
+            ws.convertAndSend("/topic/progress/" + fileId, dto);
             log.info("Client subscribed to progress updates for file: {}", fileId);
         } catch (Exception e) {
             log.error("Failed to handle subscription for {}: {}", fileId, e.getMessage());
@@ -45,7 +46,6 @@ public class ProgressWebSocketController {
     public void cancelProcessing(@DestinationVariable UUID fileId) {
         log.info("Received cancel request for file {}", fileId);
         try {
-            analysisStatusFacade.cancellation().requestCancellation(fileId);
             processingService.cancelProcessing(fileId);
 
             ProgressMessageDTO dto = new ProgressMessageDTO(
@@ -63,34 +63,37 @@ public class ProgressWebSocketController {
         }
     }
 
-    /**
-     * Возвращает текущее состояние анализа по запросу (например, для кнопки «Обновить»)
-     */
-    @MessageMapping("/progress/status/{fileId}")
-    public void getStatus(@DestinationVariable UUID fileId) {
-        try {
-            internalGetProgressMessageDTO(fileId);
-        } catch (Exception e) {
-            log.error("Failed to fetch status for {}: {}", fileId, e.getMessage());
-        }
-    }
+//    /**
+//     * Возвращает текущее состояние анализа по запросу (например, для кнопки «Обновить»)
+//     */
+//    @MessageMapping("/progress/status/{fileId}")
+//    public void getStatus(@DestinationVariable UUID fileId) {
+//        try {
+//            internalGetProgressMessageDTO(fileId);
+//        } catch (Exception e) {
+//            log.error("Failed to fetch status for {}: {}", fileId, e.getMessage());
+//        }
+//    }
 
-    private void internalGetProgressMessageDTO(@DestinationVariable UUID fileId) {
-        Optional<ProcessingStatus> status = analysisStatusFacade.status().get(fileId);
-        Optional<Integer> progress = analysisStatusFacade.progress().getProgressValue(fileId);
+    private ProgressMessageDTO internalGetProgressMessageDTO(@DestinationVariable UUID fileId) {
+        Optional<ProgressMessageDTO> progress = analysisStatusFacade.progress().get(fileId);
 
-        ProgressMessageDTO dto = new ProgressMessageDTO(
-                fileId,
-                status.orElse(null),
-                progress.orElseGet(() -> {
-                    if (status.isPresent() && status.get().equals(ProcessingStatus.COMPLETED)) {
-                        return 100;
-                    }
-                    return null;
-                }),
-                "Subscription successful. Current progress: " + progress.map(p -> p + "%").orElse("unknown"),
-                LocalDateTime.now()
-        );
-        ws.convertAndSend("/topic/progress/" + fileId, dto);
+        return progress.orElseGet(() -> {
+            Optional<ProcessingStatus> status = analysisStatusFacade.status().get(fileId);
+
+            Integer progressValue = null;
+            if (status.isPresent() && status.get().equals(ProcessingStatus.COMPLETED)) {
+                progressValue = 100;
+            }
+
+            return new ProgressMessageDTO(
+                    fileId,
+                    status.orElse(null),
+                    progressValue,
+                    "Subscription successful. Current progress: " +
+                            (progressValue != null ? progressValue + "%" : "unknown"),
+                    LocalDateTime.now()
+            );
+        });
     }
 }

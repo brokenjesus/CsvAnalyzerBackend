@@ -11,12 +11,12 @@ public class AnalysisStatusFacade {
 
     private final StatusRedisService statusService;
     private final ProgressRedisService progressService;
-    private final CancellationRedisService cancelService;
+//    private final CancellationRedisService cancelService;
 
     public void cleanup(UUID fileId) {
 //        statusService.delete(fileId);
         progressService.delete(fileId);
-        cancelService.deleteCancellationFlag(fileId);
+//        cancelService.deleteCancellationFlag(fileId);
     }
 
     public StatusRedisService status() {
@@ -27,7 +27,7 @@ public class AnalysisStatusFacade {
         return progressService;
     }
 
-    public CancellationRedisService cancellation() {
-        return cancelService;
-    }
+//    public CancellationRedisService cancellation() {
+//        return cancelService;
+//    }
 }

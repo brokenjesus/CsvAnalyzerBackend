@@ -10,6 +10,7 @@ import java.util.UUID;
 @Table(name = "analysis_statistics")
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class AnalysisStatistics {
@@ -18,9 +19,9 @@ public class AnalysisStatistics {
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     private UUID id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "analysis_result_id")
-    private AnalysisResult analysisResult;
+//    @OneToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "analysis_result_id")
+//    private AnalysisResult analysisResult;
 
     private Long totalRecords;
     private Long processedRecords;

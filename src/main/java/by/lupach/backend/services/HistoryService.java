@@ -6,7 +6,9 @@ import by.lupach.backend.dtos.PageResponseDTO;
 import by.lupach.backend.entities.AnalysisResult;
 import by.lupach.backend.entities.FileEntity;
 import by.lupach.backend.repositories.AnalysisResultRepository;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,14 +22,14 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class FIleAnalysisHistoryService {
+public class HistoryService {
 
     private final AnalysisResultRepository analysisResultRepository;
+    @Value("${app.max.history.records}")
     private static final int MAX_HISTORY_RECORDS = 10;
-    private static final int PAGE_SIZE = 5;
 
-    public PageResponseDTO<AnalysisResultDTO> getHistory(int page) {
-        Pageable pageable = PageRequest.of(page, PAGE_SIZE);
+    public PageResponseDTO<AnalysisResultDTO> getHistory(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
         Page<AnalysisResult> resultsPage = analysisResultRepository.findLatestAnalysisResults(pageable);
 
         List<AnalysisResultDTO> content = resultsPage.getContent().stream()

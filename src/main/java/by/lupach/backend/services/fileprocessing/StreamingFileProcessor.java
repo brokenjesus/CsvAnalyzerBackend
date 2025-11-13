@@ -1,10 +1,11 @@
 package by.lupach.backend.services.fileprocessing;
 
+import by.lupach.backend.entities.AnalysisResult;
 import by.lupach.backend.entities.AnalysisStatistics;
 import by.lupach.backend.entities.ProcessingStatus;
+import by.lupach.backend.services.files.FileStorageService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
@@ -31,11 +32,17 @@ public class StreamingFileProcessor {
     @Resource(name = "taskScheduler")
     private TaskScheduler scheduler;
 
-    @Value("${app.upload.dir:uploads}")
-    private String uploadDir;
+    public AnalysisStatistics processFile(Path path, UUID fileId) throws Exception {
+        AnalysisStatistics stats = AnalysisStatistics.builder()
+                .minValue(Double.MAX_VALUE)
+                .maxValue(Double.MIN_VALUE)
+                .totalRecords(0L)
+                .processedRecords(0L)
+                .skippedRecords(0L)
+                .sumValue(0.0)
+                .sumOfSquares(0.0)
+                .build();
 
-    public void processFile(String internalFilePath, UUID fileId, AnalysisStatistics stats) throws Exception {
-        Path path = Paths.get(uploadDir, internalFilePath);
         long totalSize = Files.size(path);
         long bytesRead = 0;
 
@@ -99,5 +106,6 @@ public class StreamingFileProcessor {
         }
 
         calculator.finalizeStats(stats, unique);
+        return stats;
     }
 }
