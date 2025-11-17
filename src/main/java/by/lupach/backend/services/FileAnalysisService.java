@@ -2,11 +2,9 @@ package by.lupach.backend.services;
 
 import by.lupach.backend.dtos.AnalysisResultDTO;
 import by.lupach.backend.entities.AnalysisResult;
-import by.lupach.backend.entities.AnalysisStatistics;
-import by.lupach.backend.entities.ProcessingStatus;
 import by.lupach.backend.exceptions.AnalysisNotFoundException;
 import by.lupach.backend.repositories.AnalysisResultRepository;
-import by.lupach.backend.repositories.AnalysisStatisticsRepository;
+import by.lupach.backend.services.files.FileStorageService;
 import by.lupach.backend.services.redis.AnalysisStatusFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.convert.ConversionService;
@@ -22,17 +20,13 @@ public class FileAnalysisService {
 
     private final AnalysisStatusFacade analysisStatusFacade;
     private final AnalysisResultRepository analysisResultRepository;
-//    private final AnalysisStatisticsRepository statsRepo;
     private final ConversionService conversionService;
 
     @Transactional
     public void saveResult(AnalysisResult result) {
-//        if (result.getStatistics() != null) {
-//            statsRepo.save(result.getStatistics());
-//        }
         result.setProcessEndTime(LocalDateTime.now());
-        analysisStatusFacade.analysis().set(result.getId(), conversionService.convert(result, AnalysisResultDTO.class));
-        analysisResultRepository.save(result);
+        result = analysisResultRepository.save(result);
+        analysisStatusFacade.analysis().set(result.getFile().getId(), conversionService.convert(result, AnalysisResultDTO.class));
     }
 
     public AnalysisResultDTO getAnalysisDetailsByFileId(UUID fileId) {
@@ -44,14 +38,5 @@ public class FileAnalysisService {
                             AnalysisResultDTO.class
                         )
                 );
-    }
-
-    @Transactional
-    public void deleteAnalysisByFileId(UUID fileId) {
-        AnalysisResult result = analysisResultRepository.findAnalysisResultByFile_Id(fileId)
-                .orElseThrow(() -> new AnalysisNotFoundException("Analysis result not found: " + fileId));
-
-        analysisResultRepository.delete(result);
-        analysisStatusFacade.cleanup(result.getId());
     }
 }

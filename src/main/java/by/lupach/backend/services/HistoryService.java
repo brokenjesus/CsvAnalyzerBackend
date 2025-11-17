@@ -6,6 +6,8 @@ import by.lupach.backend.dtos.PageResponseDTO;
 import by.lupach.backend.entities.AnalysisResult;
 import by.lupach.backend.entities.FileEntity;
 import by.lupach.backend.repositories.AnalysisResultRepository;
+import by.lupach.backend.services.files.FileService;
+import by.lupach.backend.services.files.FileStorageService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -26,6 +29,7 @@ import java.util.stream.Collectors;
 public class HistoryService {
 
     private final AnalysisResultRepository analysisResultRepository;
+    private final FileService fileService;
     @Value("${app.max.history.records}")
     private static final int MAX_HISTORY_RECORDS = 10;
     private final ConversionService conversionService;
@@ -54,7 +58,7 @@ public class HistoryService {
         if (totalRecords > MAX_HISTORY_RECORDS) {
             List<AnalysisResult> oldest = analysisResultRepository
                     .findOldestResults(PageRequest.of(0, (int)(totalRecords - MAX_HISTORY_RECORDS)));
-            analysisResultRepository.deleteAll(oldest);
+            oldest.forEach(f-> fileService.deleteAnalysisByFileId(f.getFile().getId()));
         }
-    }
+        }
 }

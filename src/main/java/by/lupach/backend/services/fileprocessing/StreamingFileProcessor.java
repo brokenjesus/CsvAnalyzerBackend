@@ -3,17 +3,14 @@ package by.lupach.backend.services.fileprocessing;
 import by.lupach.backend.entities.AnalysisResult;
 import by.lupach.backend.entities.AnalysisStatistics;
 import by.lupach.backend.entities.ProcessingStatus;
-import by.lupach.backend.services.files.FileStorageService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
@@ -49,16 +46,14 @@ public class StreamingFileProcessor {
         Set<Double> unique = calculator.newUniqueSet();
         notifier.notify(fileId, ProcessingStatus.PROCESSING, 0, "Started processing");
 
-        // Используем AtomicReference для ошибки и AtomicLong для байтов
         AtomicLong currentBytesRead = new AtomicLong(0);
         AtomicReference<Exception> processingError = new AtomicReference<>();
 
         ScheduledFuture<?> progressTask = scheduler.scheduleAtFixedRate(() -> {
             try {
-                // Проверяем ошибки
                 Exception error = processingError.get();
                 if (error != null) {
-                    return; // Прекращаем выполнение если есть ошибка
+                    return;
                 }
 
                 long bytes = currentBytesRead.get();
@@ -73,12 +68,10 @@ public class StreamingFileProcessor {
         try (BufferedReader reader = Files.newBufferedReader(path)) {
             String line;
             while ((line = reader.readLine()) != null) {
-                // Проверяем прерывание основного потока
                 if (Thread.currentThread().isInterrupted()) {
                     throw new InterruptedException();
                 }
 
-                // Проверяем ошибки из задачи уведомлений
                 Exception error = processingError.get();
                 if (error != null) {
                     throw error;
@@ -89,17 +82,14 @@ public class StreamingFileProcessor {
                 currentBytesRead.set(bytesRead);
             }
 
-            // Завершаем задачу уведомлений
             progressTask.cancel(false);
             notifier.notify(fileId, ProcessingStatus.COMPLETED, 100, "Completed successfully");
 
         } catch (Exception e) {
-            // Сохраняем ошибку для потока уведомлений
             processingError.set(e);
             progressTask.cancel(false);
             throw e;
         } finally {
-            // Гарантируем отмену задачи
             if (!progressTask.isDone()) {
                 progressTask.cancel(false);
             }

@@ -19,9 +19,9 @@ public class AnalysisStatistics {
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     private UUID id;
 
-//    @OneToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "analysis_result_id")
-//    private AnalysisResult analysisResult;
+    @OneToOne
+    @JoinColumn(name = "analysis_result_id")
+    private AnalysisResult analysisResult;
 
     private Long totalRecords;
     private Long processedRecords;

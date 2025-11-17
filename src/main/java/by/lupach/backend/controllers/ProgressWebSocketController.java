@@ -3,13 +3,13 @@ package by.lupach.backend.controllers;
 import by.lupach.backend.dtos.ProgressMessageDTO;
 import by.lupach.backend.entities.ProcessingStatus;
 import by.lupach.backend.services.fileprocessing.StreamingFileProcessingService;
+import by.lupach.backend.services.files.FileCancelProcessingPublisher;
 import by.lupach.backend.services.redis.AnalysisStatusFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.*;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -22,7 +22,7 @@ public class ProgressWebSocketController {
 
     private final SimpMessagingTemplate ws;
     private final AnalysisStatusFacade analysisStatusFacade;
-    private final StreamingFileProcessingService processingService;
+    private final FileCancelProcessingPublisher fileCancelProcessingPublisher;
 
 
     /**
@@ -46,7 +46,7 @@ public class ProgressWebSocketController {
     public void cancelProcessing(@DestinationVariable UUID fileId) {
         log.info("Received cancel request for file {}", fileId);
         try {
-            processingService.cancelProcessing(fileId);
+            fileCancelProcessingPublisher.enqueue(fileId);
 
             ProgressMessageDTO dto = new ProgressMessageDTO(
                     fileId,

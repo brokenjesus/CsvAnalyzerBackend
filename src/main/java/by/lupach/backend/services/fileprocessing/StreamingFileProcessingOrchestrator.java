@@ -22,7 +22,7 @@ import java.util.concurrent.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class FileProcessingOrchestrator {
+public class StreamingFileProcessingOrchestrator {
 
     private final FileEntityRepository fileRepo;
     private final StreamingFileProcessor processor;
@@ -36,7 +36,6 @@ public class FileProcessingOrchestrator {
     private final ExecutorService exec = Executors.newCachedThreadPool();
     private final ConcurrentHashMap<UUID, Future<AnalysisResult>> tasks = new ConcurrentHashMap<>();
 
-    /** Асинхронная обработка файла, возвращает результат анализа */
     public AnalysisResult startProcessing(FileQueueMessageDTO msg) {
         UUID id = msg.fileId();
         if (tasks.containsKey(id)) {
@@ -48,7 +47,7 @@ public class FileProcessingOrchestrator {
         tasks.put(id, f);
 
         try {
-            return f.get(); // дождаться результата
+            return f.get();
         } catch (Exception e) {
             log.error("Ошибка ожидания результата обработки: {}", e.getMessage());
             return null;
@@ -60,12 +59,12 @@ public class FileProcessingOrchestrator {
         Path path = Paths.get(uploadDir, msg.filePath());
 
         try {
-            FileEntity file = fileRepo.findById(id).orElseThrow();
             AnalysisResult res = new AnalysisResult();
-            res.setFile(file);
             res.setProcessStartTime(LocalDateTime.now());
 
             AnalysisStatistics stats = processor.processFile(path, id);
+            FileEntity file = fileRepo.findById(id).orElseThrow();
+            res.setFile(file);
 
             res.setStatistics(stats);
             res.setProcessEndTime(LocalDateTime.now());
@@ -79,8 +78,6 @@ public class FileProcessingOrchestrator {
             handleFailure(id, e);
         } finally {
             tasks.remove(id);
-            historyService.cleanupOldRecords();
-            fileStorageService.deletePhysicalFile(path);
         }
         return null;
     }
