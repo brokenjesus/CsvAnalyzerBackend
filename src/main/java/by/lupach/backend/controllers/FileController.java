@@ -6,6 +6,7 @@ import by.lupach.backend.dtos.PageResponseDTO;
 import by.lupach.backend.services.FileAnalysisService;
 import by.lupach.backend.services.HistoryService;
 import by.lupach.backend.services.fileprocessing.StreamingFileProcessingService;
+import by.lupach.backend.services.files.FileCancelProcessingPublisher;
 import by.lupach.backend.services.files.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +22,7 @@ import java.util.UUID;
 public class FileController {
 
     private final FileService fileService;
-    private final StreamingFileProcessingService fileProcessingService;
+    private final FileCancelProcessingPublisher fileCancelProcessingPublisher;
     private final HistoryService historyService;
     private final FileAnalysisService fileAnalysisService;
 
@@ -34,7 +35,7 @@ public class FileController {
 
     @PostMapping("/cancel/{fileId}")
     public ResponseEntity<Void> cancel(@PathVariable UUID fileId) {
-        fileProcessingService.cancelProcessing(fileId);
+        fileCancelProcessingPublisher.enqueue(fileId);
         return ResponseEntity.ok().build();
     }
 
@@ -52,7 +53,7 @@ public class FileController {
 
     @DeleteMapping("/history/{id}")
     public ResponseEntity<Void> deleteAnalysis(@PathVariable UUID id) {
-        fileAnalysisService.deleteAnalysisByFileId(id);
+        fileService.deleteAnalysisByFileId(id);
         return ResponseEntity.ok().build();
     }
 }

@@ -13,6 +13,6 @@ public class FileQueuePublisher {
     private final RedisTemplate<String, FileQueueMessageDTO> redis;
 
     public void enqueue(FileQueueMessageDTO message) {
-        redis.opsForList().rightPush(RedisConfig.FILE_QUEUE, message);
+        redis.opsForList().rightPush(RedisConfig.FILE_PROCESSING_QUEUE, message);
     }
 }

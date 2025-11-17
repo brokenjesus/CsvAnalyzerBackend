@@ -26,16 +26,31 @@ public class FileStorageService {
         return path;
     }
 
-    public void deletePhysicalFile(Path filePath) {
+//    public void deletePhysicalFile(Path path) {
+//        try {
+//            boolean deleted = Files.deleteIfExists(path);
+//            if (deleted) {
+//                log.info("Physical file deleted for analysis: {}", path);
+//            } else {
+//                log.warn("Physical file not found for deletion: {}", path);
+//            }
+//        } catch (IOException e) {
+//            log.error("Failed to delete physical file for analysis: {}", path, e);
+//        }
+//    }
+
+    public void deletePhysicalFileViaInternalPath(String internalFilePath) {
+        Path path = Paths.get(uploadDir, internalFilePath);
+
         try {
-            boolean deleted = Files.deleteIfExists(filePath);
+            boolean deleted = Files.deleteIfExists(path);
             if (deleted) {
-                log.info("Physical file deleted for analysis: {}", filePath);
+                log.info("Physical file deleted for analysis: {}", path);
             } else {
-                log.warn("Physical file not found for deletion: {}", filePath);
+                log.warn("Physical file not found for deletion: {}", path);
             }
         } catch (IOException e) {
-            log.error("Failed to delete physical file for analysis: {}", filePath, e);
+            log.error("Failed to delete physical file for analysis: {}", path, e);
         }
     }
 }

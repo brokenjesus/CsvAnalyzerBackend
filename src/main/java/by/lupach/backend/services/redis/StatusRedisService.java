@@ -16,7 +16,7 @@ public class StatusRedisService{
     private final RedisTemplate<String, String> redis;
 
     public void set(UUID fileId, ProcessingStatus status) {
-        redis.opsForValue().set(RedisConfig.STATUS_PREFIX + fileId, status.name(), Duration.ofHours(24));
+        redis.opsForValue().set(RedisConfig.STATUS_PREFIX + fileId, status.name(), Duration.ofMinutes(30));
     }
 
     public Optional<ProcessingStatus> get(UUID fileId) {

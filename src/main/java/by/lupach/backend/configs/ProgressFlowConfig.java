@@ -1,6 +1,7 @@
 package by.lupach.backend.configs;
 
 import by.lupach.backend.dtos.ProgressMessageDTO;
+import by.lupach.backend.entities.FileEntity;
 import by.lupach.backend.entities.ProcessingStatus;
 import by.lupach.backend.repositories.FileEntityRepository;
 import by.lupach.backend.services.redis.AnalysisStatusFacade;
@@ -12,6 +13,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Configuration
@@ -47,13 +49,21 @@ public class ProgressFlowConfig {
     }
 
     private void updateDBFileStatusIfChanged(ProgressMessageDTO progressMessage) {
-        Optional<ProcessingStatus> currentStatus = analysisStatusFacade.status().get(progressMessage.fileId());
+        UUID fileId = progressMessage.fileId();
+        Optional<ProcessingStatus> currentStatus = analysisStatusFacade.status().get(fileId);
 
         if (currentStatus.isEmpty() || !currentStatus.get().equals(progressMessage.status())) {
-            fileEntityRepository.findById(progressMessage.fileId()).ifPresent(fileEntity -> {
+            FileEntity fileEntity = fileEntityRepository.findById(fileId).orElse(null);
+
+            if (fileEntity != null) {
                 fileEntity.setStatus(progressMessage.status());
                 fileEntityRepository.save(fileEntity);
-            });
+                log.info("Статус файла ID: {} успешно обновлен на: {}", fileId, progressMessage.status());
+            } else {
+                log.warn("Файл с ID: {} не найден в репозитории", fileId);
+            }
+        } else {
+            log.debug("Статус файла ID: {} не изменился: {}", fileId, progressMessage.status());
         }
     }
 

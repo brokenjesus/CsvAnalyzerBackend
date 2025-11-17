@@ -2,15 +2,19 @@ package by.lupach.backend.services.files;
 
 import by.lupach.backend.dtos.FileQueueMessageDTO;
 import by.lupach.backend.dtos.FileUploadResponseDTO;
+import by.lupach.backend.entities.AnalysisResult;
 import by.lupach.backend.entities.FileEntity;
 import by.lupach.backend.entities.ProcessingStatus;
+import by.lupach.backend.exceptions.AnalysisNotFoundException;
 import by.lupach.backend.exceptions.FileSizeAboveLimitException;
 import by.lupach.backend.exceptions.InvalidFileExtensionException;
 import by.lupach.backend.repositories.FileEntityRepository;
+import by.lupach.backend.services.fileprocessing.ProgressNotifier;
 import by.lupach.backend.services.redis.AnalysisStatusFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -25,7 +29,9 @@ public class FileService {
     private final FileEntityRepository fileRepo;
     private final FileStorageService storageService;
     private final FileQueuePublisher queuePublisher;
-    private final AnalysisStatusFacade statusFacade;
+    private final FileStorageService fileStorageService;
+    private final AnalysisStatusFacade analysisStatusFacade;
+    private final ProgressNotifier notifier;
 
     @Value("${app.max.file.size:52428800}")
     private long maxSize;
@@ -43,7 +49,7 @@ public class FileService {
         entity = fileRepo.save(entity);
         storageService.saveFile(file, entity.getFilePath());
 
-        statusFacade.status().set(entity.getId(), ProcessingStatus.PENDING);
+        notifier.notify(entity.getId(), ProcessingStatus.PENDING, 0, "Added to queue");
 //        statusFacade.progress().setProgress(entity.getId(), 0);
 
         queuePublisher.enqueue(new FileQueueMessageDTO(
@@ -63,5 +69,15 @@ public class FileService {
         if (!Objects.requireNonNull(file.getOriginalFilename()).toLowerCase().endsWith(".csv")) {
             throw new InvalidFileExtensionException("Only CSV files are allowed");
         }
+    }
+
+
+    @Transactional
+    public void deleteAnalysisByFileId(UUID fileId) {
+        FileEntity result = fileRepo.getReferenceById(fileId);
+
+        fileStorageService.deletePhysicalFileViaInternalPath(result.getFilePath());
+        fileRepo.delete(result);
+        analysisStatusFacade.cleanup(fileId);
     }
 }

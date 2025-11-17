@@ -12,16 +12,16 @@ import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.redis.inbound.RedisQueueMessageDrivenEndpoint;
 import org.springframework.messaging.MessageChannel;
 
+import java.util.UUID;
+
 @Slf4j
 @Configuration
 @EnableIntegration
 @RequiredArgsConstructor
 public class FileIntegrationConfig {
 
-    private static final String FILE_PROCESSING_CHANNEL = "fileProcessingChannel";
-    private static final String FILE_QUEUE_ENDPOINT_BEAN_NAME = "fileQueueEndpoint";
-
     private final RedisTemplate<String, FileQueueMessageDTO> fileQueueRedisTemplate;
+    private final RedisTemplate<String, UUID> cancelQueueRedisTemplate;
 
     @Bean
     public MessageChannel fileInputChannel() {
@@ -29,14 +29,18 @@ public class FileIntegrationConfig {
     }
 
     @Bean
-    public RedisQueueMessageDrivenEndpoint redisQueueEndpoint() {
+    public MessageChannel cancelInputChannel() {
+        return new DirectChannel();
+    }
+
+    @Bean
+    public RedisQueueMessageDrivenEndpoint fileProcessingQueueEndpoint() {
         RedisQueueMessageDrivenEndpoint endpoint = new RedisQueueMessageDrivenEndpoint(
-                RedisConfig.FILE_QUEUE,
+                RedisConfig.FILE_PROCESSING_QUEUE,
                 fileQueueRedisTemplate.getConnectionFactory()
         );
 
         endpoint.setOutputChannel(fileInputChannel());
-        endpoint.setBeanName(FILE_QUEUE_ENDPOINT_BEAN_NAME);
         endpoint.setSerializer(fileQueueRedisTemplate.getValueSerializer());
         endpoint.setExpectMessage(false);
 
@@ -44,10 +48,32 @@ public class FileIntegrationConfig {
     }
 
     @Bean
-    public IntegrationFlow fileProcessingFlow() {
+    public RedisQueueMessageDrivenEndpoint cancelQueueEndpoint() {
+        RedisQueueMessageDrivenEndpoint endpoint = new RedisQueueMessageDrivenEndpoint(
+                RedisConfig.FILE_CANCEL_QUEUE,
+                cancelQueueRedisTemplate.getConnectionFactory()
+        );
+
+        endpoint.setOutputChannel(cancelInputChannel());
+        endpoint.setSerializer(cancelQueueRedisTemplate.getValueSerializer());
+        endpoint.setExpectMessage(false);
+
+        return endpoint;
+    }
+
+    @Bean
+    public IntegrationFlow fileProcessingInboundFlow() {
         return IntegrationFlow
-                .from(redisQueueEndpoint())
-                .channel(FILE_PROCESSING_CHANNEL)
+                .from(fileProcessingQueueEndpoint())
+                .channel("fileProcessingChannel")
+                .get();
+    }
+
+    @Bean
+    public IntegrationFlow fileCancelInboundFlow() {
+        return IntegrationFlow
+                .from(cancelQueueEndpoint())
+                .channel("cancelFileProcessingChannel")
                 .get();
     }
 }

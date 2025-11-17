@@ -17,7 +17,7 @@ public class ProgressRedisService {
     private final RedisTemplate<String, ProgressMessageDTO> progressRedis;
 
     public void set(UUID id, ProgressMessageDTO message) {
-        progressRedis.opsForValue().set(PROGRESS_PREFIX + id, message, Duration.ofHours(1));
+        progressRedis.opsForValue().set(PROGRESS_PREFIX + id, message, Duration.ofMinutes(30));
     }
 
     public Optional<ProgressMessageDTO> get(UUID fileId) {
